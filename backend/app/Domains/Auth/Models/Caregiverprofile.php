@@ -6,8 +6,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/** Stores professional, service-area, and verification details for a caregiver. */
 class CaregiverProfile extends Model
 {
+    /** Attributes managed through caregiver profile creation and updates. */
     protected $fillable = [
         'user_id',
         'caregiver_type',
@@ -27,6 +29,7 @@ class CaregiverProfile extends Model
         'rating_count',
     ];
 
+    /** Preserves precision for pricing/location data and decodes structured skills. */
     protected function casts(): array
     {
         return [
@@ -39,11 +42,13 @@ class CaregiverProfile extends Model
         ];
     }
 
+    /** Returns the account that owns this caregiver profile. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** Returns the user who verified the caregiver's professional license. */
     public function licenseVerifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'license_verified_by');

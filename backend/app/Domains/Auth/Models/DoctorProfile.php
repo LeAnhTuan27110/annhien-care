@@ -6,8 +6,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/** Stores a doctor's credentials, consultation settings, and clinical permissions. */
 class DoctorProfile extends Model
 {
+    /** Attributes managed through doctor profile creation and updates. */
     protected $fillable = [
         'user_id',
         'license_number',
@@ -20,6 +22,7 @@ class DoctorProfile extends Model
         'can_author_alert_rules',
     ];
 
+    /** Converts credential timestamps, fees, and permissions to application types. */
     protected function casts(): array
     {
         return [
@@ -29,11 +32,13 @@ class DoctorProfile extends Model
         ];
     }
 
+    /** Returns the account that owns this doctor profile. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** Returns the user who verified the doctor's professional license. */
     public function licenseVerifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'license_verified_by');

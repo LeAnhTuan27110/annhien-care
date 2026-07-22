@@ -5,8 +5,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PatientProfiles extends Model
+/** Stores patient demographics and baseline care information. */
+class PatientProfile extends Model
 {
+    /** Attributes managed through patient profile creation and updates. */
     protected $fillable = [
         'user_id',
         'date_of_birth',
@@ -22,6 +24,7 @@ class PatientProfiles extends Model
         'care_level',
     ];
 
+    /** Encrypts government ID data and preserves measurement precision. */
     protected function casts(): array
     {
         return [
@@ -32,6 +35,7 @@ class PatientProfiles extends Model
         ];
     }
 
+    /** Returns the user account that owns this patient profile. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

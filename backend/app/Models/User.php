@@ -17,9 +17,10 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
+    /** Provides API tokens, roles, notifications, factories, and soft deletion. */
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
     
-    // Các trường có thể gán giá trị hàng loạt (mass assignable)
+    // Attributes that can be mass assigned.
     protected $fillable = [
         'name',
         'email',
@@ -28,13 +29,14 @@ class User extends Authenticatable
         'status',
         'locale',
     ];
-    // tu dong an cac truong nhay cam khi tra ve json
+    // Sensitive attributes hidden from JSON responses.
     protected $hidden = [
         'password',
         'remember_token',
         'mfa_secret',
     ];
 
+    /** Converts persisted account and security attributes to their application types. */
     protected function casts(): array
     {
         return [
@@ -47,28 +49,31 @@ class User extends Authenticatable
         ];
     }
 
+    /** Returns the patient-specific profile owned by this account. */
     public function patientProfile(): HasOne
     {
         return $this->hasOne(PatientProfile::class);
     }
 
+    /** Returns the caregiver-specific profile owned by this account. */
     public function caregiverProfile(): HasOne
     {
         return $this->hasOne(CaregiverProfile::class);
     }
 
+    /** Returns the doctor-specific profile owned by this account. */
     public function doctorProfile(): HasOne
     {
         return $this->hasOne(DoctorProfile::class);
     }
 
-    /** Các bệnh nhân mà user này (người nhà) được liên kết tới. */
+    /** Patients linked to this user as a family member. */
     public function familyLinksAsFamily(): HasMany
     {
         return $this->hasMany(FamilyLink::class, 'family_user_id');
     }
 
-    /** Các người nhà được liên kết tới user này (khi user là bệnh nhân). */
+    /** Family members linked to this user as a patient. */
     public function familyLinksAsPatient(): HasMany
     {
         return $this->hasMany(FamilyLink::class, 'patient_id');
