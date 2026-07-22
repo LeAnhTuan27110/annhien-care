@@ -5,6 +5,7 @@ namespace App\Domains\Health\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Medication extends Model
@@ -13,7 +14,8 @@ class Medication extends Model
 
     protected $fillable = [
         'patient_id', 'drug_name', 'dosage', 'frequency', 'route', 'start_date', 'end_date',
-        'prescribing_doctor_id', 'instructions', 'source', 'verification_status', 'created_by',
+        'prescribing_doctor_id', 'instructions', 'source', 'verification_status', 'verified_by', 'verified_at',
+        'rejection_reason', 'created_by',
     ];
 
     protected function casts(): array
@@ -29,5 +31,15 @@ class Medication extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function verificationSignatures(): MorphMany
+    {
+        return $this->morphMany(VerificationSignature::class, 'verifiable');
     }
 }
