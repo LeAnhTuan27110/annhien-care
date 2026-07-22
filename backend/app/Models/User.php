@@ -18,13 +18,21 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
-
+    
+    // Các trường có thể gán giá trị hàng loạt (mass assignable)
     protected $fillable = [
-        'name', 'email', 'phone', 'password', 'status', 'locale',
+        'name',
+        'email',
+        'phone',
+        'password',
+        'status',
+        'locale',
     ];
-
+    // tu dong an cac truong nhay cam khi tra ve json
     protected $hidden = [
-        'password', 'remember_token', 'mfa_secret',
+        'password',
+        'remember_token',
+        'mfa_secret',
     ];
 
     protected function casts(): array
