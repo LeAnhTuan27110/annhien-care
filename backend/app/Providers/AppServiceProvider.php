@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Domains\Auth\Contracts\AuthServiceInterface;
 use App\Domains\Auth\Services\AuthService;
+use App\Domains\Health\Models\Medication;
+use App\Domains\Health\Policies\MedicationPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +25,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Configure application-wide runtime behavior here when it is introduced.
+        Gate::policy(Medication::class, MedicationPolicy::class);
     }
 }
