@@ -21,7 +21,38 @@ class MedicationPolicy
     public function view(User $user, Medication $medication): bool
     {
         return $medication->patient_id === $user->id
+            || $this->isVerifiedClinician($user)
             || ($user->hasRole('family_member') && $this->hasFamilyAccess($user, $medication->patient_id, ['full', 'view_only']));
+    }
+
+    public function viewPendingQueue(User $user): bool
+    {
+        return $this->isVerifiedClinician($user);
+    }
+
+    public function verify(User $user, Medication $medication): bool
+    {
+        return $this->isVerifiedClinician($user);
+    }
+
+    public function reject(User $user, Medication $medication): bool
+    {
+        return $this->isVerifiedClinician($user);
+    }
+
+    private function isVerifiedClinician(User $user): bool
+    {
+        // A role alone is insufficient for clinical verification; professional credentials must be verified too.
+        $isVerifiedDoctor = $user->hasRole('doctor')
+            && $user->doctorProfile()->where('license_verified_status', 'verified')->exists();
+
+        $isVerifiedNurse = $user->hasRole('nurse')
+            && $user->caregiverProfile()
+                ->where('caregiver_type', 'nurse')
+                ->where('license_verified_status', 'verified')
+                ->exists();
+
+        return $isVerifiedDoctor || $isVerifiedNurse;
     }
 
     private function hasFamilyAccess(User $user, int $patientId, array $permissionLevels): bool
