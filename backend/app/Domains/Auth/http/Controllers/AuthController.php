@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
-/** Handles public authentication endpoints and returns API-safe account data. */
 class AuthController
 {
     /**
@@ -51,7 +50,6 @@ class AuthController
     {
         $validated = $request->validated();
 
-        // Authenticate with the stored password hash instead of exposing account-existence details.
         $user = User::where('email', $validated['email'])->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
@@ -60,7 +58,6 @@ class AuthController
             ]);
         }
 
-        // Prevent suspended or deactivated accounts from receiving new API tokens.
         if ($user->status === 'suspended' || $user->status === 'deactivated') {
             throw ValidationException::withMessages([
                 'email' => ['Tài khoản đã bị khóa. Liên hệ quản trị viên để được hỗ trợ.'],
@@ -70,10 +67,8 @@ class AuthController
         // Revoke the existing token for this device to avoid accumulating stale tokens.
         $user->tokens()->where('name', $validated['device_name'])->delete();
 
-        // Sanctum returns the plaintext token only at creation time.
         $token = $user->createToken($validated['device_name'])->plainTextToken;
 
-        // Record successful authentication for account security and audit purposes.
         $user->forceFill(['last_login_at' => now()])->save();
 
         return response()->json([
@@ -81,22 +76,19 @@ class AuthController
             'user' => $this->formatUser($user),
         ]);
     }
-
+    //delete
     public function logout(Request $request): JsonResponse
     {
-        // Revoke only the token used for the current request, leaving other devices signed in.
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Đã đăng xuất.']);
     }
-
+    
     public function me(Request $request): JsonResponse
     {
-        // Reuse the same allowlisted representation returned after login.
         return response()->json($this->formatUser($request->user()));
     }
 
-    /** Returns only account fields that are safe for the authenticated client. */
     private function formatUser(User $user): array
     {
         return [
