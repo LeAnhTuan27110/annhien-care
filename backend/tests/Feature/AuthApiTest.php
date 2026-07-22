@@ -6,7 +6,9 @@ use App\Domains\Auth\Contracts\AuthServiceInterface;
 use App\Domains\Auth\Services\AuthService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -106,9 +108,104 @@ class AuthApiTest extends TestCase
         $this->assertNotNull($user->fresh()->last_login_at);
     }
 
+    public function test_login_fails_with_wrong_password(): void
+    {
+        $user = $this->createActivePatient();
+
+        $response = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'WrongPass1',
+            'device_name' => 'test-device',
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'email' => 'Email hoặc mật khẩu không đúng.',
+            ]);
+    }
+
+    public function test_login_fails_for_suspended_or_deactivated_user(): void
+    {
+        foreach (['suspended', 'deactivated'] as $status) {
+            $user = $this->createActivePatient(['status' => $status]);
+
+            $this->postJson('/api/login', [
+                'email' => $user->email,
+                'password' => 'SecurePass1',
+                'device_name' => 'test-device',
+            ])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors([
+                    'email' => 'Tài khoản đã bị khóa. Liên hệ quản trị viên để được hỗ trợ.',
+                ]);
+        }
+    }
+
+    public function test_authenticated_user_can_log_out(): void
+    {
+        $user = $this->createActivePatient();
+        $token = $this->loginAndGetToken($user);
+
+        $this->withToken($token)->postJson('/api/logout')->assertOk();
+
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'id' => (int) Str::before($token, '|'),
+        ]);
+
+        Auth::forgetGuards();
+
+        $this->withToken($token)->getJson('/api/me')->assertUnauthorized();
+    }
+
+    public function test_login_deletes_previous_token_with_same_device_name(): void
+    {
+        $user = $this->createActivePatient();
+
+        $this->loginAndGetToken($user, 'same-device');
+        $this->loginAndGetToken($user, 'same-device');
+
+        $this->assertSame(1, $user->tokens()->where('name', 'same-device')->count());
+    }
+
+    public function test_authenticated_user_can_view_profile(): void
+    {
+        $user = $this->createActivePatient();
+        $token = $this->loginAndGetToken($user);
+
+        $this->withToken($token)
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('id', $user->id)
+            ->assertJsonPath('email', $user->email)
+            ->assertJsonPath('status', 'active')
+            ->assertJsonPath('roles.0', 'patient')
+            ->assertJsonStructure(['id', 'name', 'email', 'status', 'roles']);
+    }
+
     public function test_protected_auth_endpoints_reject_anonymous_requests(): void
     {
         $this->getJson('/api/me')->assertUnauthorized();
         $this->postJson('/api/logout')->assertUnauthorized();
+    }
+
+    private function createActivePatient(array $attributes = []): User
+    {
+        $user = User::factory()->create(array_merge([
+            'password' => Hash::make('SecurePass1'),
+            'status' => 'active',
+        ], $attributes));
+        $user->assignRole('patient');
+
+        return $user;
+    }
+
+    private function loginAndGetToken(User $user, string $deviceName = 'test-device'): string
+    {
+        return $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'SecurePass1',
+            'device_name' => $deviceName,
+        ])->assertOk()->json('token');
     }
 }
