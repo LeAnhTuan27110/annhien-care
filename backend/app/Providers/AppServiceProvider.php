@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domains\Auth\Contracts\AuthServiceInterface;
+use App\Domains\Auth\Services\AuthService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register application-wide service bindings here when they are introduced.
+        // Bind the Auth domain contract to its concrete application service.
+        $this->app->bind(AuthServiceInterface::class, AuthService::class);
     }
 
     /**
